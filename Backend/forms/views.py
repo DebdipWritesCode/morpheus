@@ -3,10 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from .utils.question_validator import validate_questions
+from utils.answer_validator import validate_answers
 from .serializers import FormSerializer
 
 from django.contrib.auth.models import User as AuthUser
-from .models import User, Question, Form
+from .models import User, Question, Form, Response as ResponseModel, Answer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 class SignupView(APIView):
@@ -129,6 +130,11 @@ class GetFormsView(APIView):
     try:
       user = User.objects.get(id=user_id)
       
+      if not user:
+        return Response({
+          "error": "User not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+      
       if user.role != User.ADMIN:
         return Response({
           "error": "You are not authorized to view forms"
@@ -152,3 +158,47 @@ class GetFormsView(APIView):
       return Response({
         "error": str(e)
       }, status=status.HTTP_400_BAD_REQUEST)
+
+class SubmitResponseView(APIView):
+  def post(self, request):
+    data = request.data
+    form_id = data.get('form_id')
+    answers = data.get('answers')
+    
+    if not form_id:
+      return Response({
+        "error": "Form ID is required"
+      }, status=status.HTTP_400_BAD_REQUEST)
+      
+    if not answers:
+      return Response({
+        "error": "Answers are required"
+      }, status=status.HTTP_400_BAD_REQUEST)
+      
+    try:
+      form = Form.objects.get(id=form_id)
+    except Form.DoesNotExist:
+      return Response({
+        "error": "Form not found"
+      }, status=status.HTTP_404_NOT_FOUND)
+      
+    try:
+      validate_answers(answers, form_id)
+    except Exception as e:
+      return Response({
+        "error": str(e)
+      }, status=status.HTTP_400_BAD_REQUEST)
+      
+    response = ResponseModel.objects.create(form=form.id)
+    
+    for answer in answers:
+      Answer.objects.create(
+        response = response.id,
+        question = answer.get('question_id'),
+        answer = answer.get('answer')
+      )
+    
+    return Response({
+      "message": "Response submitted successfully"
+    }, status=status.HTTP_201_CREATED)
+    
