@@ -4,10 +4,11 @@ from rest_framework import status
 from django.contrib.auth import authenticate
 from .utils.question_validator import validate_questions
 from utils.answer_validator import validate_answers
+from utils.analytics import aggregate_text_answers, aggregate_dropdown_answers, aggregate_checkbox_answers
 from .serializers import FormSerializer
 
 from django.contrib.auth.models import User as AuthUser
-from .models import User, Question, Form, Response as ResponseModel, Answer
+from .models import User, UserRole, Question, QuestionType, Form, Response as ResponseModel, Answer
 from rest_framework_simplejwt.tokens import RefreshToken
 
 class SignupView(APIView):
@@ -75,7 +76,7 @@ class CreateFormView(APIView):
     questions = data.get('questions')
     
     user = User.objects.get(id=user_id)
-    if user.role != User.ADMIN:
+    if user.role != UserRole.ADMIN:
       return Response({
         "error": "You are not authorized to create forms"
       }, status=status.HTTP_403_FORBIDDEN)
@@ -135,7 +136,7 @@ class GetFormsView(APIView):
           "error": "User not found"
         }, status=status.HTTP_404_NOT_FOUND)
       
-      if user.role != User.ADMIN:
+      if user.role != UserRole.ADMIN:
         return Response({
           "error": "You are not authorized to view forms"
         }, status=status.HTTP_403_FORBIDDEN)
@@ -202,3 +203,50 @@ class SubmitResponseView(APIView):
       "message": "Response submitted successfully"
     }, status=status.HTTP_201_CREATED)
     
+class ShowAnalyticsView(APIView):
+  def get(self, request, form_id):
+    try:
+      form = Form.objects.get(id=form_id)
+    except Form.DoesNotExist:
+      return Response({
+        "error": "Form not found"
+      }, status=status.HTTP_404_NOT_FOUND)
+    
+    total_responses = ResponseModel.objects.filter(form=form_id).count()
+    
+    if total_responses == 0:
+      return Response({
+        "message": "No responses found for the form",
+        "total_responses": total_responses,
+        "text_aggregate": {},
+        "dropdown_aggregate": {},
+        "checkbox_aggregate": {}
+      }, status=status.HTTP_200_OK)
+      
+    text_questions = Question.objects.filter(form=form_id, type=QuestionType.TEXT).values_list('id', flat=True)
+    dropdown_questions = Question.objects.filter(form=form_id, type=QuestionType.DROPDOWN).values_list('id', flat=True)
+    checkbox_questions = Question.objects.filter(form=form_id, type=QuestionType.CHECKBOX).values_list('id', flat=True)
+    
+    text_aggregate = {}
+    dropdown_aggregate = {}
+    checkbox_aggregate = {}
+    
+    if text_questions:
+        text_answers = Answer.objects.filter(question_id__in=text_questions).values_list("answer", flat=True)
+        text_aggregate = aggregate_text_answers(text_answers)
+
+    if checkbox_questions:
+        checkbox_answers = Answer.objects.filter(question_id__in=checkbox_questions).values_list("answer", flat=True)
+        checkbox_aggregate = aggregate_checkbox_answers(checkbox_answers)
+
+    if dropdown_questions:
+        dropdown_answers = Answer.objects.filter(question_id__in=dropdown_questions).values_list("answer", flat=True)
+        dropdown_aggregate = aggregate_dropdown_answers(dropdown_answers)
+
+    return Response({
+        "message": "Analytics retrieved successfully.",
+        "total_responses": total_responses,
+        "text_aggregate": text_aggregate,
+        "checkbox_aggregate": checkbox_aggregate,
+        "dropdown_aggregate": dropdown_aggregate
+    }, status=status.HTTP_200_OK)
