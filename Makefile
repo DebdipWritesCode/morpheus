@@ -1,19 +1,22 @@
+include .env
+export $(shell sed 's/=.*//' .env)
+
 postgres:
-	docker run --name postgres_form_builder -e POSTGRES_USER=admin -e POSTGRES_PASSWORD=Debdip123 -e POSTGRES_DB=form_builder -p 5432:5432 -d postgres
+	docker run --name postgres_form_builder -e POSTGRES_USER=${DB_USER} -e POSTGRES_PASSWORD=${DB_PASSWORD} -e POSTGRES_DB=${DB_NAME} -p ${DB_PORT}:5432 -d postgres
 
 createdb:
-	docker exec -it postgres_form_builder psql -U admin -d form_builder
+	docker exec -it postgres_form_builder createdb -U ${DB_USER} ${DB_NAME}
 
 dropdb:
-	docker exec -it dropdb form_builder
+	docker exec -it postgres_form_builder dropdb -U ${DB_USER} ${DB_NAME}
 
 migrateup:
-	python manage.py migrate
+	cd Backend && python manage.py migrate
 
 makemigrations:
-	python manage.py makemigrations
+	cd Backend && python manage.py makemigrations
 
-server:
-	python manage.py runserver
+back_server:
+	cd Backend && python manage.py runserver
 
-.PHONY: postgres createdb dropdb migrateup makemigrations server
+.PHONY: postgres createdb dropdb migrateup makemigrations back_server
