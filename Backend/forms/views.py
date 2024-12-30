@@ -180,6 +180,37 @@ class GetFormsView(APIView):
       return Response({
         "error": str(e)
       }, status=status.HTTP_400_BAD_REQUEST)
+      
+class GetFormView(APIView):
+  def get(self, request, form_id):
+    try:
+      form = Form.objects.get(id=form_id)
+    except Form.DoesNotExist:
+      return Response({
+        "error": "Form not found"
+      }, status=status.HTTP_404_NOT_FOUND)
+      
+    questions = Question.objects.filter(form=form_id)
+    questions_data = []
+    
+    for question in questions:
+      question_data = {
+        "id": question.id,
+        "question_text": question.question_text,
+        "type": question.type,
+        "options": question.options
+      }
+      questions_data.append(question_data)
+    
+    return Response({
+      "message": "Form retrieved successfully",
+      "form": {
+        "id": form.id,
+        "title": form.title,
+        "description": form.description,
+        "questions": questions_data
+      }
+    }, status=status.HTTP_200_OK)
 
 class SubmitResponseView(APIView):
   def post(self, request):
