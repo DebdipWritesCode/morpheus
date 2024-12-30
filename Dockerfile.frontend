@@ -1,0 +1,20 @@
+# Use the official Node.js image
+FROM node:18
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY Frontend/package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy project files
+COPY Frontend /app
+
+# Expose the port for Vite's development server
+EXPOSE 5173
+
+# Command to run the frontend server
+CMD ["npm", "run", "dev"]
