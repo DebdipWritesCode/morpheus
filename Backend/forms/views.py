@@ -96,7 +96,7 @@ class CreateFormView(APIView):
     questions = data.get('questions')
     
     user = User.objects.get(id=user_id)
-    if user.role != UserRole.ADMIN:
+    if user.role.lower() not in [UserRole.ADMIN.lower()]:
       return Response({
         "error": "You are not authorized to create forms"
       }, status=status.HTTP_403_FORBIDDEN)
@@ -156,7 +156,8 @@ class GetFormsView(APIView):
           "error": "User not found"
         }, status=status.HTTP_404_NOT_FOUND)
       
-      if user.role != UserRole.ADMIN:
+      if user.role.lower() not in [UserRole.ADMIN.lower()]:
+        print(user.role)
         return Response({
           "error": "You are not authorized to view forms"
         }, status=status.HTTP_403_FORBIDDEN)

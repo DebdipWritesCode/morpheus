@@ -75,7 +75,7 @@ const Login = () => {
       localStorage.setItem("access_token", response.data.access_token);
       toast.success("Login successful, redirecting to forms...", {
         onClose: () => {
-          navigate("/create-form");
+          navigate("/see-forms");
         },
       });
     } catch (err) {
