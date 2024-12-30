@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from .utils.question_validator import validate_questions
-from utils.answer_validator import validate_answers
-from utils.analytics import aggregate_text_answers, aggregate_dropdown_answers, aggregate_checkbox_answers
+from .utils.answer_validator import validate_answers
+from .utils.analytics import aggregate_text_answers, aggregate_dropdown_answers, aggregate_checkbox_answers
 from .serializers import FormSerializer
 
 from django.contrib.auth.models import User as AuthUser
