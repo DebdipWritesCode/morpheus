@@ -14,6 +14,21 @@ from rest_framework_simplejwt.tokens import RefreshToken
 class SignupView(APIView):
   def post(self, request):
     data = request.data
+    if not data.get('username'):
+      return Response({
+        "error": "Username is required"
+      }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if not data.get('email'):
+      return Response({
+        "error": "Email is required"
+      }, status=status.HTTP_400_BAD_REQUEST)
+      
+    already_exists = User.objects.filter(email=data['email']).exists()
+    if already_exists:
+      return Response({
+        "error": "User with this email already exists"
+      }, status=status.HTTP_400_BAD_REQUEST)
     try:
       auth_user = AuthUser.objects.create_user(
         username = data['username'],
@@ -40,6 +55,11 @@ class LoginView(APIView):
     data = request.data
     username = data.get('username')
     password = data.get('password')
+    
+    if not username:
+      return Response({
+        "error": "Username is required"
+      }, status=status.HTTP_400_BAD_REQUEST)
     
     user = authenticate(username=username, password=password)
     if not user:
